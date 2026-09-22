@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>[INTERNAL ACTION REQUIRED] DP Paid but Not Converted - GUVI Courses Team</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f0f4f8; margin: 0; padding: 20px; color: #2d3748; }
+    .container { max-width: 650px; margin: 0 auto; background: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.08); border-top: 5px solid #ff8b00; }
+    .header { background: #172b4d; color: #ffffff; padding: 20px 30px; }
+    .header h1 { margin: 0; font-size: 20px; font-weight: 700; }
+    .content { padding: 30px; line-height: 1.6; }
+    .alert-banner { background: #fff0b3; border-left: 4px solid #ff8b00; padding: 12px 16px; margin-bottom: 20px; border-radius: 4px; font-weight: 600; color: #172b4d; }
+    table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+    th, td { padding: 12px 14px; text-align: left; border-bottom: 1px solid #e2e8f0; font-size: 14px; }
+    th { background-color: #f7fafc; color: #4a5568; font-weight: 600; width: 35%; }
+    .highlight { font-weight: bold; color: #00875a; }
+    .btn { display: inline-block; background-color: #0052cc; color: #ffffff !important; padding: 10px 20px; text-decoration: none; border-radius: 4px; font-size: 14px; font-weight: bold; }
+    .footer { text-align: center; padding: 15px; font-size: 12px; color: #718096; background: #edf2f7; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>GUVI Internal Ops Alert: Down Payment Paid &ndash; Not Converted</h1>
+    </div>
+    <div class="content">
+      <div class="alert-banner">
+        High-intent lead requires counseling follow-up. Down payment paid, but conversion is pending past the {{ window_hours }}hr window.
+      </div>
+
+      <p>Hello <strong>Team GUVI Courses</strong>,</p>
+      <p>A student has successfully paid the initial down payment, but the remaining balance has not been completed. Please initiate a high-priority follow-up call to help the student complete enrollment.</p>
+
+      <table>
+        <tr>
+          <th>Student Name</th>
+          <td><strong>{{ user_name }}</strong></td>
+        </tr>
+        <tr>
+          <th>Email Address</th>
+          <td><a href="mailto:{{ user_email }}">{{ user_email }}</a></td>
+        </tr>
+        <tr>
+          <th>Phone Number</th>
+          <td>{{ user_phone or 'Not provided' }}</td>
+        </tr>
+        <tr>
+          <th>Enrolled Course</th>
+          <td><strong>{{ course_title }}</strong> (ID: {{ course_id }})</td>
+        </tr>
+        <tr>
+          <th>Down Payment Received</th>
+          <td class="highlight">{{ currency }} {{ "%.2f"|format(down_payment_amount) }}</td>
+        </tr>
+        <tr>
+          <th>Outstanding Balance Due</th>
+          <td><strong>{{ currency }} {{ "%.2f"|format(balance_due) }}</strong></td>
+        </tr>
+        <tr>
+          <th>DP Paid At</th>
+          <td>{{ dp_paid_at_str }} ({{ elapsed_hours }} hours ago)</td>
+        </tr>
+        <tr>
+          <th>Original Payment Link</th>
+          <td><a href="{{ payment_link_url }}">{{ payment_link_url }}</a></td>
+        </tr>
+        <tr>
+          <th>Internal Link ID</th>
+          <td><code>{{ payment_link_id }}</code></td>
+        </tr>
+      </table>
+
+      <p><strong>Recommended Action:</strong></p>
+      <ul>
+        <li>Contact the student to assist with remaining installments or loan/financing assistance.</li>
+        <li>Offer any technical or batch schedule clarifications.</li>
+      </ul>
+    </div>
+    <div class="footer">
+      GUVI Payment Reminder Automation &bull; Automated System Escalation
+    </div>
+  </div>
+</body>
+</html>

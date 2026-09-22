@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Your Course Enrollment Payment Link - GUVI</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f4f7f6; margin: 0; padding: 20px; color: #333333; }
+    .container { max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+    .header { background: #00875a; color: #ffffff; padding: 25px 30px; text-align: center; }
+    .header h1 { margin: 0; font-size: 24px; font-weight: 700; letter-spacing: 0.5px; }
+    .content { padding: 30px; line-height: 1.6; }
+    .card { background: #f9fbfb; border: 1px solid #e1e8e6; border-radius: 6px; padding: 20px; margin: 20px 0; }
+    .btn { display: inline-block; background-color: #00875a; color: #ffffff !important; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: bold; margin-top: 15px; }
+    .footer { text-align: center; padding: 20px; font-size: 12px; color: #777777; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>GUVI Geek Networks</h1>
+    </div>
+    <div class="content">
+      <h2>Welcome {{ user_name }},</h2>
+      <p>Thank you for choosing to upskill with GUVI! Here is your official payment link to enroll in <strong>{{ course_title }}</strong>.</p>
+      
+      <div class="card">
+        <p><strong>Course:</strong> {{ course_title }}</p>
+        <p><strong>Total Course Fee:</strong> {{ currency }} {{ "%.2f"|format(amount_due) }}</p>
+        {% if down_payment_amount > 0 %}
+        <p><strong>Down Payment Option:</strong> {{ currency }} {{ "%.2f"|format(down_payment_amount) }}</p>
+        {% endif %}
+        <p><strong>Payment Due Date:</strong> {{ due_date_str }}</p>
+      </div>
+
+      <div style="text-align: center;">
+        <a href="{{ payment_link_url }}" class="btn" target="_blank">Complete Your Enrollment</a>
+      </div>
+
+      <p style="margin-top: 30px;">If you have questions regarding payment plans or syllabus details, reply directly to this email or reach us at <a href="mailto:{{ support_email }}">{{ support_email }}</a>.</p>
+      
+      <p>Warm regards,<br><strong>Team GUVI</strong></p>
+    </div>
+    <div class="footer">
+      <p>&copy; GUVI Geek Networks, IITM Research Park. All rights reserved.</p>
+    </div>
+  </div>
+</body>
+</html>

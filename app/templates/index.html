@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GUVI Payment Reminder Service</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'] },
+        }
+      }
+    }
+  </script>
+  <style>
+    body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; }
+    @keyframes toastFadeIn {
+      from { transform: translateY(-8px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+    .toast-enter { animation: toastFadeIn 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+  </style>
+</head>
+<body class="bg-[#f8fafc] text-slate-800 min-h-screen antialiased">
+  <!-- Toast Container -->
+  <div id="toast-container" class="fixed top-4 right-4 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none"></div>
+
+  <!-- Header -->
+  <header class="bg-white border-b border-slate-200/90 sticky top-0 z-30 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
+    <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-3.5">
+        <div class="w-9 h-9 rounded-lg bg-emerald-600 flex items-center justify-center text-white font-bold text-base shadow-sm">
+          G
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="font-bold text-slate-900 tracking-tight text-sm">GUVI</span>
+            <span class="text-slate-300">/</span>
+            <span class="text-slate-700 text-sm font-semibold">Payment Reminders</span>
+            <span class="text-[11px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-medium border border-slate-200">Production Engine</span>
+          </div>
+          <p class="text-[11px] text-slate-500 font-normal">Automated course follow-ups, overdue alerts & down payment escalations</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-2.5">
+        <span class="inline-flex items-center gap-1.5 text-xs text-emerald-700 font-medium bg-emerald-50 border border-emerald-200/80 px-2.5 py-1 rounded-md">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+          Connected
+        </span>
+        <a href="/docs" target="_blank" class="text-xs font-medium text-slate-600 hover:text-slate-900 bg-white border border-slate-200 hover:border-slate-300 px-3 py-1.5 rounded-md transition shadow-xs flex items-center gap-1">
+          <span>Swagger</span>
+          <svg class="w-3 h-3 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="max-w-7xl mx-auto px-6 py-7 space-y-6">
+    <!-- Stat Cards with Subtle Visual Hierarchy -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div class="bg-white p-5 rounded-xl border border-slate-200/90 shadow-[0_1px_3px_rgba(0,0,0,0.04)] relative">
+        <div class="flex items-center justify-between text-xs font-semibold text-slate-500">
+          <span>Total Payment Links</span>
+          <span class="w-2 h-2 rounded-full bg-slate-400"></span>
+        </div>
+        <div id="stat-total-links" class="text-3xl font-bold text-slate-900 mt-2">0</div>
+        <div class="text-[11px] text-slate-400 mt-1 font-medium">All active student links</div>
+      </div>
+
+      <div class="bg-white p-5 rounded-xl border border-slate-200/90 shadow-[0_1px_3px_rgba(0,0,0,0.04)] relative">
+        <div class="flex items-center justify-between text-xs font-semibold text-slate-500">
+          <span>Pending Reminders</span>
+          <span class="w-2 h-2 rounded-full bg-amber-400"></span>
+        </div>
+        <div id="stat-pending-links" class="text-3xl font-bold text-slate-900 mt-2">0</div>
+        <div class="text-[11px] text-slate-400 mt-1 font-medium">Eligible for follow-up</div>
+      </div>
+
+      <div class="bg-white p-5 rounded-xl border border-slate-200/90 shadow-[0_1px_3px_rgba(0,0,0,0.04)] relative">
+        <div class="flex items-center justify-between text-xs font-semibold text-slate-500">
+          <span>Overdue Payments</span>
+          <span class="w-2 h-2 rounded-full bg-rose-500"></span>
+        </div>
+        <div id="stat-overdue-links" class="text-3xl font-bold text-slate-900 mt-2">0</div>
+        <div class="text-[11px] text-slate-400 mt-1 font-medium">Past due deadline</div>
+      </div>
+
+      <div class="bg-white p-5 rounded-xl border border-slate-200/90 shadow-[0_1px_3px_rgba(0,0,0,0.04)] relative">
+        <div class="flex items-center justify-between text-xs font-semibold text-slate-500">
+          <span>DP Paid Not Converted</span>
+          <span class="w-2 h-2 rounded-full bg-indigo-500"></span>
+        </div>
+        <div id="stat-dp-links" class="text-3xl font-bold text-slate-900 mt-2">0</div>
+        <div class="text-[11px] text-slate-400 mt-1 font-medium">Escalated to Courses Team</div>
+      </div>
+    </div>
+
+    <!-- Action Toolbar -->
+    <div class="bg-white p-4 rounded-xl border border-slate-200/90 shadow-[0_1px_3px_rgba(0,0,0,0.04)] flex flex-wrap items-center justify-between gap-3">
+      <div class="flex flex-wrap items-center gap-2.5">
+        <button id="btn-trigger-reminders" onclick="triggerRemindersNow()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-xs py-2 px-4 rounded-lg shadow-sm transition flex items-center gap-1.5 active:scale-95">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+          <span>Send Reminders Now</span>
+        </button>
+
+        <button onclick="openModal('modal-create-link')" class="bg-slate-900 hover:bg-slate-800 text-white font-medium text-xs py-2 px-4 rounded-lg shadow-sm transition flex items-center gap-1.5 active:scale-95">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+          <span>Generate Payment Link</span>
+        </button>
+
+        <button onclick="openModal('modal-external-link')" class="bg-white hover:bg-slate-50 text-slate-700 font-medium text-xs py-2 px-3.5 rounded-lg border border-slate-200 hover:border-slate-300 transition shadow-xs">
+          Ingest External Link
+        </button>
+
+        <button onclick="openModal('modal-create-course')" class="bg-white hover:bg-slate-50 text-slate-700 font-medium text-xs py-2 px-3.5 rounded-lg border border-slate-200 hover:border-slate-300 transition shadow-xs">
+          New Course
+        </button>
+      </div>
+
+      <button onclick="refreshAllData()" class="text-xs font-medium text-slate-600 hover:text-slate-900 bg-slate-50 hover:bg-slate-100 border border-slate-200 px-3 py-2 rounded-lg transition flex items-center gap-1.5">
+        <svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+        <span>Refresh</span>
+      </button>
+    </div>
+
+    <!-- FULL WIDTH SECTION 1: Active Payment Links -->
+    <section class="bg-white rounded-xl border border-slate-200/90 shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+      <div class="px-5 py-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white">
+        <div>
+          <h2 class="text-sm font-semibold text-slate-900">Active Payment Links</h2>
+          <p class="text-xs text-slate-500 mt-0.5">Track student payment status, due dates, and update payment milestones</p>
+        </div>
+        <div class="flex items-center gap-2.5">
+          <input type="text" id="table-search" oninput="filterTable()" placeholder="Search by student, email, course..." class="bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-800 placeholder-slate-400 focus:bg-white focus:ring-1 focus:ring-slate-300 focus:border-slate-300 outline-none w-64 transition">
+          <select id="status-filter" onchange="filterTable()" class="bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-700 outline-none">
+            <option value="ALL">All Statuses</option>
+            <option value="PENDING">Pending</option>
+            <option value="DOWN_PAYMENT_PAID">DP Paid</option>
+            <option value="OVERDUE">Overdue</option>
+            <option value="CONVERTED">Converted</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-xs">
+          <thead class="bg-slate-50/80 text-slate-500 font-semibold border-b border-slate-200/80">
+            <tr>
+              <th class="py-3 px-4 pl-5">Source</th>
+              <th class="py-3 px-4">Student</th>
+              <th class="py-3 px-4">Course</th>
+              <th class="py-3 px-4">Amount</th>
+              <th class="py-3 px-4">Status</th>
+              <th class="py-3 px-4">Due Date</th>
+              <th class="py-3 px-4">Reminders</th>
+              <th class="py-3 px-4 pr-5 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="payment-links-tbody" class="divide-y divide-slate-100">
+            <tr>
+              <td colspan="8" class="p-8 text-center text-slate-400">Loading payment links...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- FULL WIDTH SECTION 2: Live Reminder Delivery Audit Trail -->
+    <section class="bg-white rounded-xl border border-slate-200/90 shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+      <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-white">
+        <div>
+          <h2 class="text-sm font-semibold text-slate-900">Live Reminder Delivery Audit Trail</h2>
+          <p class="text-xs text-slate-500 mt-0.5">Audit log of notifications dispatched across all courses and channels</p>
+        </div>
+        <span class="text-[11px] font-mono text-slate-400 bg-slate-50 px-2 py-0.5 rounded border border-slate-200">
+          GET /api/v1/reminders/logs
+        </span>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-xs">
+          <thead class="bg-slate-50/80 text-slate-500 font-semibold border-b border-slate-200/80">
+            <tr>
+              <th class="py-3 px-4 pl-5">Reminder Type</th>
+              <th class="py-3 px-4">Course</th>
+              <th class="py-3 px-4">Recipient</th>
+              <th class="py-3 px-4">Channel</th>
+              <th class="py-3 px-4">Status</th>
+              <th class="py-3 px-4 pr-5 text-right">Sent At</th>
+            </tr>
+          </thead>
+          <tbody id="audit-logs-tbody" class="divide-y divide-slate-100">
+            <tr>
+              <td colspan="6" class="p-8 text-center text-slate-400">Loading reminder delivery logs...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <!-- Modal: Generate Payment Link (No prefilled personal info) -->
+  <div id="modal-create-link" class="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl border border-slate-200 max-w-lg w-full p-6 shadow-xl space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <div>
+          <h3 class="text-sm font-semibold text-slate-900">Generate Payment Link</h3>
+          <p class="text-xs text-slate-500 mt-0.5">Creates link and sends payment email to the student</p>
+        </div>
+        <button onclick="closeModal('modal-create-link')" class="text-slate-400 hover:text-slate-600 text-lg leading-none">&times;</button>
+      </div>
+
+      <form onsubmit="handleCreateLink(event)" class="space-y-3.5">
+        <div>
+          <label class="block text-xs font-medium text-slate-700 mb-1">Target Course</label>
+          <select id="link-course-id" required class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs text-slate-900 focus:bg-white focus:border-slate-400 outline-none">
+            <option value="">Select a course...</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-700 mb-1">Student Full Name</label>
+          <input type="text" id="link-user-name" required placeholder="Enter student name" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs text-slate-900 focus:bg-white focus:border-slate-400 outline-none">
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-700 mb-1">Student Email Address</label>
+          <input type="email" id="link-user-email" required placeholder="student@example.com" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs text-slate-900 focus:bg-white focus:border-slate-400 outline-none font-mono">
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-medium text-slate-700 mb-1">Phone (Optional)</label>
+            <input type="text" id="link-user-phone" placeholder="+91 98765 43210" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs text-slate-900 focus:bg-white focus:border-slate-400 outline-none font-mono">
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-700 mb-1">Payment Due Date</label>
+            <input type="date" id="link-due-date" required class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs text-slate-900 focus:bg-white focus:border-slate-400 outline-none">
+          </div>
+        </div>
+        <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+          <button type="button" onclick="closeModal('modal-create-link')" class="px-3.5 py-1.5 rounded-lg text-xs font-medium text-slate-600 hover:bg-slate-100">Cancel</button>
+          <button type="submit" id="btn-submit-link" class="bg-slate-900 hover:bg-slate-800 text-white font-medium px-4 py-1.5 rounded-lg text-xs transition shadow-xs">Generate Link</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Ingest External Link -->
+  <div id="modal-external-link" class="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl border border-slate-200 max-w-lg w-full p-6 shadow-xl space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <h3 class="text-sm font-semibold text-slate-900">Record External Payment Link</h3>
+        <button onclick="closeModal('modal-external-link')" class="text-slate-400 hover:text-slate-600 text-lg leading-none">&times;</button>
+      </div>
+      <form onsubmit="handleIngestExternalLink(event)" class="space-y-3.5">
+        <div>
+          <label class="block text-xs font-medium text-slate-700 mb-1">Course</label>
+          <select id="ext-course-id" required class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs text-slate-900 focus:bg-white focus:border-slate-400 outline-none"></select>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-700 mb-1">Student Full Name</label>
+          <input type="text" id="ext-user-name" required placeholder="Enter student name" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs text-slate-900 focus:bg-white focus:border-slate-400 outline-none">
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-700 mb-1">Student Email Address</label>
+          <input type="email" id="ext-user-email" required placeholder="student@example.com" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs text-slate-900 focus:bg-white focus:border-slate-400 outline-none font-mono">
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-medium text-slate-700 mb-1">Amount Due (₹)</label>
+            <input type="number" id="ext-amount-due" required placeholder="55000" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs text-slate-900 focus:bg-white focus:border-slate-400 outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-700 mb-1">Due Date</label>
+            <input type="date" id="ext-due-date" required class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs text-slate-900 focus:bg-white focus:border-slate-400 outline-none">
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-700 mb-1">Payment URL</label>
+          <input type="url" id="ext-payment-url" required placeholder="https://gateway.example.com/pay/link_123" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs text-slate-900 focus:bg-white focus:border-slate-400 outline-none font-mono">
+        </div>
+        <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-150">
+          <button type="button" onclick="closeModal('modal-external-link')" class="px-3.5 py-1.5 rounded-lg text-xs font-medium text-slate-600 hover:bg-slate-100">Cancel</button>
+          <button type="submit" class="bg-slate-900 hover:bg-slate-800 text-white font-medium px-4 py-1.5 rounded-lg text-xs transition">Record Link</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Create Course -->
+  <div id="modal-create-course" class="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl border border-slate-200 max-w-md w-full p-6 shadow-xl space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <h3 class="text-sm font-semibold text-slate-900">Add New Program</h3>
+        <button onclick="closeModal('modal-create-course')" class="text-slate-400 hover:text-slate-600 text-lg leading-none">&times;</button>
+      </div>
+      <form onsubmit="handleCreateCourse(event)" class="space-y-3.5">
+        <div>
+          <label class="block text-xs font-medium text-slate-700 mb-1">Course Code</label>
+          <input type="text" id="new-course-id" required placeholder="e.g. FSD-JAVA-004" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs text-slate-900 focus:bg-white focus:border-slate-400 outline-none">
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-700 mb-1">Program Title</label>
+          <input type="text" id="new-course-title" required placeholder="e.g. Java Full Stack Development" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs text-slate-900 focus:bg-white focus:border-slate-400 outline-none">
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-medium text-slate-700 mb-1">Full Price (₹)</label>
+            <input type="number" id="new-course-price" required placeholder="45000" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs text-slate-900 focus:bg-white focus:border-slate-400 outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-700 mb-1">Down Payment (₹)</label>
+            <input type="number" id="new-course-dp" required placeholder="5000" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs text-slate-900 focus:bg-white focus:border-slate-400 outline-none">
+          </div>
+        </div>
+        <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+          <button type="button" onclick="closeModal('modal-create-course')" class="px-3.5 py-1.5 rounded-lg text-xs font-medium text-slate-600 hover:bg-slate-100">Cancel</button>
+          <button type="submit" class="bg-slate-900 hover:bg-slate-800 text-white font-medium px-4 py-1.5 rounded-lg text-xs transition">Save Course</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    let coursesCache = [];
+    let paymentLinksCache = [];
+
+    function initDefaultDueDates() {
+      const d = new Date();
+      d.setDate(d.getDate() + 7);
+      const iso = d.toISOString().split('T')[0];
+      const linkDueDate = document.getElementById('link-due-date');
+      const extDueDate = document.getElementById('ext-due-date');
+      if (linkDueDate) linkDueDate.value = iso;
+      if (extDueDate) extDueDate.value = iso;
+    }
+
+    function showToast(title, message, isError = false) {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      const bg = isError ? 'bg-rose-900 text-white border-rose-800' : 'bg-slate-900 text-white border-slate-800';
+      toast.className = `toast-enter ${bg} p-3 rounded-lg shadow-lg pointer-events-auto flex items-start justify-between gap-3 text-xs border`;
+      toast.innerHTML = `
+        <div>
+          <div class="font-semibold">${title}</div>
+          <div class="text-slate-300 mt-0.5">${message}</div>
+        </div>
+        <button onclick="this.parentElement.remove()" class="text-slate-400 hover:text-white text-base leading-none">&times;</button>
+      `;
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(-4px)';
+        setTimeout(() => toast.remove(), 200);
+      }, 4000);
+    }
+
+    function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
+    function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+
+    async function loadCourses() {
+      try {
+        const res = await fetch('/api/v1/courses');
+        coursesCache = await res.json();
+        const linkSelect = document.getElementById('link-course-id');
+        const extSelect = document.getElementById('ext-course-id');
+        
+        const options = coursesCache.map(c => 
+          `<option value="${c.id}">${c.title} (₹${c.full_price.toLocaleString()})</option>`
+        ).join('');
+
+        linkSelect.innerHTML = '<option value="">Select a course...</option>' + options;
+        extSelect.innerHTML = '<option value="">Select a course...</option>' + options;
+      } catch (err) {
+        console.error('Error loading courses:', err);
+      }
+    }
+
+    function copyToClipboard(text) {
+      navigator.clipboard.writeText(text);
+      showToast('Copied', text);
+    }
+
+    function formatReminderTypeBadge(type) {
+      if (type === 'PENDING_REMINDER') {
+        return '<span class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium bg-slate-100 text-slate-700 border border-slate-200">Pending Reminder</span>';
+      }
+      if (type === 'OVERDUE_ALERT') {
+        return '<span class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium bg-rose-50 text-rose-700 border border-rose-200">Overdue Alert</span>';
+      }
+      if (type === 'DP_NOT_CONVERTED_TEAM_ALERT') {
+        return '<span class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium bg-indigo-50 text-indigo-700 border border-indigo-200">Team Escalation</span>';
+      }
+      return `<span class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium bg-slate-100 text-slate-700">${type}</span>`;
+    }
+
+    function formatStatusBadge(status) {
+      if (status === 'PENDING') {
+        return '<span class="inline-flex items-center gap-1.5 text-xs text-amber-700 font-medium bg-amber-50 border border-amber-200/70 px-2 py-0.5 rounded-md"><span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>Pending</span>';
+      }
+      if (status === 'OVERDUE') {
+        return '<span class="inline-flex items-center gap-1.5 text-xs text-rose-700 font-medium bg-rose-50 border border-rose-200/70 px-2 py-0.5 rounded-md"><span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>Overdue</span>';
+      }
+      if (status === 'DOWN_PAYMENT_PAID') {
+        return '<span class="inline-flex items-center gap-1.5 text-xs text-blue-700 font-medium bg-blue-50 border border-blue-200/70 px-2 py-0.5 rounded-md"><span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span>DP Paid</span>';
+      }
+      if (status === 'CONVERTED') {
+        return '<span class="inline-flex items-center gap-1.5 text-xs text-emerald-700 font-medium bg-emerald-50 border border-emerald-200/70 px-2 py-0.5 rounded-md"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>Converted</span>';
+      }
+      if (status === 'CANCELLED') {
+        return '<span class="inline-flex items-center gap-1.5 text-xs text-slate-500 font-medium bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-md"><span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span>Cancelled</span>';
+      }
+      return status;
+    }
+
+    function renderTableRows(links) {
+      const tbody = document.getElementById('payment-links-tbody');
+      if (!links || links.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="8" class="p-8 text-center text-slate-400">No payment links found.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = links.map(link => {
+        const sourceBadge = link.source === 'INTERNAL'
+          ? '<span class="text-[10px] font-medium text-slate-600 bg-slate-100 border border-slate-200 px-1.5 py-0.5 rounded">Internal</span>'
+          : '<span class="text-[10px] font-medium text-blue-600 bg-blue-50 border border-blue-200 px-1.5 py-0.5 rounded">External</span>';
+
+        const courseTitle = link.course ? link.course.title : link.course_id;
+        const dueDateFormatted = new Date(link.due_date).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
+
+        return `
+          <tr class="hover:bg-slate-50/70 transition">
+            <td class="py-3 px-4 pl-5">${sourceBadge}</td>
+            <td class="py-3 px-4">
+              <div class="font-semibold text-slate-900">${link.user_name}</div>
+              <div class="text-slate-400 font-mono text-[11px]">${link.user_email}</div>
+            </td>
+            <td class="py-3 px-4">
+              <div class="font-medium text-slate-800">${courseTitle}</div>
+              <div class="text-[10px] font-mono text-slate-400">${link.course_id}</div>
+            </td>
+            <td class="py-3 px-4 font-semibold text-slate-900">
+              ₹${link.amount_due.toLocaleString()}
+              ${link.down_payment_amount > 0 ? `<div class="text-[10px] text-slate-400 font-normal">DP: ₹${link.down_payment_amount.toLocaleString()}</div>` : ''}
+            </td>
+            <td class="py-3 px-4">
+              ${formatStatusBadge(link.status)}
+              ${link.dp_team_alerted ? '<span class="ml-1.5 text-[10px] font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200 px-1.5 py-0.5 rounded">Alerted</span>' : ''}
+            </td>
+            <td class="py-3 px-4 text-slate-600 font-medium">${dueDateFormatted}</td>
+            <td class="py-3 px-4 text-slate-600 font-mono text-xs">${link.reminder_count} / 3</td>
+            <td class="py-3 px-4 pr-5 text-right whitespace-nowrap space-x-1.5">
+              <button onclick="copyToClipboard('${link.payment_link_url}')" class="px-2 py-1 text-slate-500 hover:text-slate-800 border border-slate-200 hover:border-slate-300 rounded text-xs transition" title="Copy payment URL">
+                Copy Link
+              </button>
+              ${link.status !== 'CONVERTED' && link.status !== 'CANCELLED' ? `
+                <button onclick="simulateStatusUpdate('${link.id}', 'DOWN_PAYMENT_PAID')" class="px-2 py-1 text-indigo-700 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded text-xs font-medium transition" title="Mark down payment paid">
+                  Pay DP
+                </button>
+                <button onclick="simulateStatusUpdate('${link.id}', 'CONVERTED')" class="px-2.5 py-1 text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded text-xs font-medium transition" title="Mark full payment complete">
+                  Convert
+                </button>
+              ` : '<span class="text-slate-400 text-xs italic">Completed</span>'}
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function filterTable() {
+      const q = document.getElementById('table-search').value.toLowerCase();
+      const statusFilter = document.getElementById('status-filter').value;
+
+      let filtered = paymentLinksCache;
+
+      if (statusFilter !== 'ALL') {
+        filtered = filtered.filter(l => l.status === statusFilter);
+      }
+
+      if (q) {
+        filtered = filtered.filter(l => 
+          l.user_name.toLowerCase().includes(q) ||
+          l.user_email.toLowerCase().includes(q) ||
+          (l.course && l.course.title.toLowerCase().includes(q)) ||
+          l.course_id.toLowerCase().includes(q)
+        );
+      }
+      renderTableRows(filtered);
+    }
+
+    async function loadPaymentLinks() {
+      try {
+        const res = await fetch('/api/v1/payment-links');
+        paymentLinksCache = await res.json();
+
+        document.getElementById('stat-total-links').textContent = paymentLinksCache.length;
+        const pendingCount = paymentLinksCache.filter(l => l.status === 'PENDING').length;
+        const overdueCount = paymentLinksCache.filter(l => l.status === 'OVERDUE').length;
+        const dpCount = paymentLinksCache.filter(l => l.status === 'DOWN_PAYMENT_PAID').length;
+
+        document.getElementById('stat-pending-links').textContent = pendingCount;
+        document.getElementById('stat-overdue-links').textContent = overdueCount;
+        document.getElementById('stat-dp-links').textContent = dpCount;
+
+        filterTable();
+      } catch (err) {
+        console.error('Error loading links:', err);
+      }
+    }
+
+    async function loadAuditLogs() {
+      try {
+        const res = await fetch('/api/v1/reminders/logs');
+        const logs = await res.json();
+        const tbody = document.getElementById('audit-logs-tbody');
+        
+        if (!logs || logs.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-slate-400">No reminder delivery logs recorded yet.</td></tr>`;
+          return;
+        }
+
+        tbody.innerHTML = logs.map(log => {
+          const timeFormatted = new Date(log.sent_at).toLocaleDateString([], { 
+            month: 'short', 
+            day: 'numeric', 
+            hour: '2-digit', 
+            minute: '2-digit' 
+          });
+
+          const courseName = log.course_title || log.course_id || '—';
+
+          return `
+            <tr class="hover:bg-slate-50/70 transition">
+              <td class="py-3 px-4 pl-5">${formatReminderTypeBadge(log.reminder_type)}</td>
+              <td class="py-3 px-4">
+                <span class="font-semibold text-slate-800">${courseName}</span>
+                ${log.course_id ? `<span class="ml-1 text-[10px] text-slate-400 font-mono">(${log.course_id})</span>` : ''}
+              </td>
+              <td class="py-3 px-4 font-mono text-slate-600 text-[11px]">${log.recipient}</td>
+              <td class="py-3 px-4 text-slate-500">${log.channel}</td>
+              <td class="py-3 px-4">
+                <span class="inline-flex items-center gap-1.5 text-xs text-emerald-700 font-medium bg-emerald-50 border border-emerald-200/70 px-2 py-0.5 rounded-md">
+                  <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                  ${log.status}
+                </span>
+              </td>
+              <td class="py-3 px-4 pr-5 text-right text-slate-500 text-xs whitespace-nowrap">${timeFormatted}</td>
+            </tr>
+          `;
+        }).join('');
+      } catch (err) {
+        console.error('Error loading audit logs:', err);
+      }
+    }
+
+    async function refreshAllData() {
+      await Promise.all([loadCourses(), loadPaymentLinks(), loadAuditLogs()]);
+    }
+
+    async function handleCreateLink(e) {
+      e.preventDefault();
+      const btn = document.getElementById('btn-submit-link');
+      btn.disabled = true;
+      btn.textContent = 'Sending...';
+
+      const payload = {
+        course_id: document.getElementById('link-course-id').value,
+        user_name: document.getElementById('link-user-name').value,
+        user_email: document.getElementById('link-user-email').value,
+        user_phone: document.getElementById('link-user-phone').value,
+        due_date: new Date(document.getElementById('link-due-date').value).toISOString()
+      };
+
+      try {
+        const res = await fetch('/api/v1/payment-links', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (!res.ok) throw new Error('Failed to create link');
+        showToast('Link Created', `Emailed payment link to ${payload.user_email}`);
+        closeModal('modal-create-link');
+        // Reset form
+        document.getElementById('link-user-name').value = '';
+        document.getElementById('link-user-email').value = '';
+        document.getElementById('link-user-phone').value = '';
+        await refreshAllData();
+      } catch (err) {
+        showToast('Error', err.message, true);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Generate Link';
+      }
+    }
+
+    async function handleIngestExternalLink(e) {
+      e.preventDefault();
+      const payload = {
+        course_id: document.getElementById('ext-course-id').value,
+        user_name: document.getElementById('ext-user-name').value,
+        user_email: document.getElementById('ext-user-email').value,
+        amount_due: parseFloat(document.getElementById('ext-amount-due').value),
+        payment_link_url: document.getElementById('ext-payment-url').value,
+        due_date: new Date(document.getElementById('ext-due-date').value).toISOString()
+      };
+
+      try {
+        const res = await fetch('/api/v1/payment-links/external-event', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (!res.ok) throw new Error('Failed to record external link');
+        showToast('Link Ingested', `Recorded external link for ${payload.user_name}`);
+        closeModal('modal-external-link');
+        // Reset form
+        document.getElementById('ext-user-name').value = '';
+        document.getElementById('ext-user-email').value = '';
+        document.getElementById('ext-amount-due').value = '';
+        document.getElementById('ext-payment-url').value = '';
+        await refreshAllData();
+      } catch (err) {
+        showToast('Error', err.message, true);
+      }
+    }
+
+    async function handleCreateCourse(e) {
+      e.preventDefault();
+      const payload = {
+        id: document.getElementById('new-course-id').value.trim(),
+        title: document.getElementById('new-course-title').value.trim(),
+        full_price: parseFloat(document.getElementById('new-course-price').value),
+        down_payment_amount: parseFloat(document.getElementById('new-course-dp').value),
+        description: '',
+        currency: 'INR'
+      };
+
+      try {
+        const res = await fetch('/api/v1/courses', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (!res.ok) throw new Error('Failed to create course');
+        showToast('Course Created', `Added ${payload.title}`);
+        closeModal('modal-create-course');
+        // Reset form
+        document.getElementById('new-course-id').value = '';
+        document.getElementById('new-course-title').value = '';
+        document.getElementById('new-course-price').value = '';
+        document.getElementById('new-course-dp').value = '';
+        await refreshAllData();
+      } catch (err) {
+        showToast('Error', err.message, true);
+      }
+    }
+
+    async function simulateStatusUpdate(linkId, newStatus) {
+      try {
+        const res = await fetch('/api/v1/payments/status-update', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ payment_link_id: linkId, status: newStatus })
+        });
+        if (!res.ok) throw new Error('Failed to update status');
+        showToast('Updated', `Status changed to ${newStatus}`);
+        await refreshAllData();
+      } catch (err) {
+        showToast('Error', err.message, true);
+      }
+    }
+
+    async function triggerRemindersNow() {
+      const btn = document.getElementById('btn-trigger-reminders');
+      btn.disabled = true;
+      btn.classList.add('opacity-70');
+      try {
+        const res = await fetch('/api/v1/reminders/trigger?force=true', { method: 'POST' });
+        const data = await res.json();
+        showToast(
+          'Reminders Sent',
+          `Sent ${data.pending_reminders_sent} pending, ${data.overdue_alerts_sent} overdue, ${data.dp_team_alerts_sent} escalations.`
+        );
+        await refreshAllData();
+      } catch (err) {
+        showToast('Failed', err.message, true);
+      } finally {
+        btn.disabled = false;
+        btn.classList.remove('opacity-70');
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      initDefaultDueDates();
+      refreshAllData();
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Action Required: Payment Overdue - GUVI</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f8f9fa; margin: 0; padding: 20px; color: #333333; }
+    .container { max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.08); border-top: 5px solid #de350b; }
+    .header { background: #fff; padding: 20px 30px; text-align: center; border-bottom: 1px solid #eee; }
+    .header h1 { margin: 0; font-size: 22px; color: #de350b; font-weight: 700; }
+    .content { padding: 30px; line-height: 1.6; }
+    .card { background: #ffebe6; border-left: 4px solid #de350b; padding: 18px 20px; margin: 20px 0; border-radius: 4px; }
+    .badge { background: #de350b; color: #ffffff; padding: 4px 8px; border-radius: 4px; font-weight: 600; font-size: 12px; text-transform: uppercase; }
+    .btn { display: inline-block; background-color: #de350b; color: #ffffff !important; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: bold; margin-top: 15px; }
+    .footer { text-align: center; padding: 20px; font-size: 12px; color: #777777; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Payment Overdue Notice</h1>
+    </div>
+    <div class="content">
+      <h2>Dear {{ user_name }},</h2>
+      <p>This is an urgent reminder regarding your course enrollment for <strong>{{ course_title }}</strong>. The payment deadline was <strong>{{ due_date_str }}</strong> and your payment is now <span class="badge">OVERDUE</span>.</p>
+      
+      <div class="card">
+        <p><strong>Course:</strong> {{ course_title }}</p>
+        <p><strong>Overdue Amount:</strong> {{ currency }} {{ "%.2f"|format(amount_due) }}</p>
+        <p><strong>Deadline Passed:</strong> {{ due_date_str }}</p>
+      </div>
+
+      <p>To prevent your batch reservation or special fee structure from being released to waitlisted students, please settle the outstanding payment immediately using the link below:</p>
+
+      <div style="text-align: center;">
+        <a href="{{ payment_link_url }}" class="btn" target="_blank">Pay Now to Retain Seat</a>
+      </div>
+
+      <p style="margin-top: 25px;">
+        If you are facing difficulties or need an extension, please contact Team GUVI immediately at <a href="mailto:{{ support_email }}">{{ support_email }}</a>.
+      </p>
+
+      <p>Regards,<br><strong>Team GUVI</strong></p>
+    </div>
+    <div class="footer">
+      <p>&copy; GUVI Geek Networks. Automated notification.</p>
+    </div>
+  </div>
+</body>
+</html>
